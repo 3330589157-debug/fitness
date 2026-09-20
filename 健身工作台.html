@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ctext y='14' font-size='14'%3E%F0%9F%92%AA%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#1f6f5f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="健身工作台">
+<title>健身工作台 · 魏禹</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.6 "Segoe UI","Microsoft YaHei",sans-serif;background:#f3f5f8;color:#20242e}
+header{position:sticky;top:0;z-index:10;background:#fff;border-bottom:1px solid #e3e7ee;padding:10px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+h1{font-size:18px;margin:0}
+.sub{color:#68707e;font-size:12px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{border:1px solid #d8dee8;background:#fff;border-radius:8px;padding:6px 14px;cursor:pointer}
+nav button.active{background:#1f6f5f;color:#fff;border-color:#1f6f5f}
+.tools{margin-left:auto;display:flex;gap:6px}
+.btn{border:1px solid #d8dee8;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px}
+.btn:hover{background:#f0f3f7}
+main{max-width:1100px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid #e3e7ee;border-radius:12px;padding:14px;margin-bottom:14px}
+h2{font-size:15px;margin:0 0 10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid #e3e7ee;padding:6px;vertical-align:top;text-align:left}
+th{background:#f7f9fb}
+.tag{display:inline-block;background:#eaf3f0;color:#1f6f5f;border-radius:6px;padding:1px 7px;font-size:12px;margin:1px 2px}
+.tag.warn{background:#fdeee3;color:#b4551f}
+.tag.rest{background:#f0f1f4;color:#5b6472}
+.tag.blue{background:#e7effb;color:#275d9e}
+.bar{height:10px;background:#edf0f4;border-radius:6px;overflow:hidden;margin:4px 0}
+.bar i{display:block;height:100%;background:#2f8f7c}
+.bar.kcal i{background:#e08a3c}
+.mut{color:#68707e;font-size:12px}
+.big{font-size:22px;font-weight:700}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.cell{flex:1;min-width:220px}
+label{display:block;font-size:12px;color:#68707e;margin-top:6px}
+input[type=number],input[type=date],input[type=text]{border:1px solid #d8dee8;border-radius:6px;padding:5px 8px;font-size:13px;width:100%}
+input.w40{width:76px}
+input[type=checkbox]{width:18px;height:18px;accent-color:#1f6f5f}
+.modal{position:fixed;inset:0;background:rgba(20,24,30,.45);display:flex;align-items:center;justify-content:center;z-index:20}
+.modal .box{background:#fff;border-radius:12px;padding:18px;width:380px}
+.hide{display:none}
+.prog{display:flex;align-items:center;gap:8px;margin:6px 0}
+.sched td{font-size:12px}
+.slot-train{background:#f0f8f5}
+.notes{font-size:13px}
+.notes li{margin:3px 0}
+.tip{font-size:12px;color:#68707e}
+.splitbtn{border:1px solid #d8dee8;background:#fff;border-radius:8px;padding:7px 12px;cursor:pointer;font-size:13px}
+.splitbtn.active{background:#1f6f5f;color:#fff;border-color:#1f6f5f}
+.diet-item{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:8px}
+.diet-item:hover{background:#f4f6f9}
+.diet-item .p{color:#1f6f5f;font-size:12px;min-width:70px}
+.diet-item .k{color:#b4551f;font-size:12px;min-width:70px}
+.banner{background:#fdeee3;border:1px solid #f3c9a8;color:#b4551f;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px}
+.scroll-x{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+#view-schedule table{min-width:860px}
+#view-training table{min-width:920px}
+#view-training th:first-child,#view-training td:first-child{min-width:280px}
+.scrollhint{display:none;color:#68707e;font-size:12px;margin-bottom:4px}
+@media (max-width:640px){ .scrollhint{display:block} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>健身工作台 <span class="sub">魏禹 · 增肌塑形 · 166cm/66kg · BMI≈23.9541</span></h1>
+  </div>
+  <nav id="tabs">
+    <button data-tab="today" class="active">今日</button>
+    <button data-tab="schedule">课表</button>
+    <button data-tab="training">训练</button>
+    <button data-tab="diet">饮食</button>
+    <button data-tab="trends">趋势</button>
+  </nav>
+  <div class="tools">
+    <button class="btn" id="btnExport">导出备份</button>
+    <button class="btn" id="btnImport">导入备份</button>
+    <button class="btn" id="btnSettings">设置</button>
+    <input type="file" id="fileImport" accept=".json" class="hide">
+  </div>
+</header>
+
+<main>
+  <section id="view-today" class="view"></section>
+  <section id="view-schedule" class="view hide"></section>
+  <section id="view-training" class="view hide"></section>
+  <section id="view-diet" class="view hide"></section>
+  <section id="view-trends" class="view hide"></section>
+</main>
+
+<div id="modalSettings" class="modal hide">
+  <div class="box">
+    <h2>设置</h2>
+    <label>学期第1周起始（周一）</label>
+    <input type="date" id="setWeek1">
+    <label>每日蛋白质目标（g）</label>
+    <input type="number" id="setProtein">
+    <label>每日碳水目标（g）</label>
+    <input type="number" id="setCarbs">
+    <label>每日脂肪目标（g）</label>
+    <input type="number" id="setFat">
+    <label>每日膳食纤维目标（g）</label>
+    <input type="number" id="setFiber">
+    <label>每日热量目标（kcal）</label>
+    <input type="number" id="setKcal">
+    <label>智谱 API Key（云部署直连用，可留空）</label>
+    <input type="password" id="setApiKey" placeholder="留空则走电脑中转">
+    <div class="mut" style="margin-top:6px">填写后手机/任何设备直连智谱识别，不依赖电脑；key 只存在本机浏览器。</div>
+    <div class="mut" style="margin-top:8px">体重目标：每周日晨空腹称重，周增重 +0.25~0.5kg；连续2周不涨则 +150~200kcal，周涨 &gt;0.75kg 则 −150~200kcal。</div>
+    <div class="row" style="margin-top:12px;justify-content:flex-end">
+      <button class="btn" id="btnSettingsCancel">取消</button>
+      <button class="btn" id="btnSettingsSave" style="background:#1f6f5f;color:#fff;border-color:#1f6f5f">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ===== 常量数据 ===== */
+var DAYS = ["周一","周二","周三","周四","周五","周六","周日"];
+var SLOTS = [
+  {id:"S1",label:"第1大节",time:"08:00~09:30"},
+  {id:"S2",label:"第2大节",time:"09:50~12:10"},
+  {id:"N", label:"中午",time:"12:20~13:50"},
+  {id:"S3",label:"第3大节",time:"14:00~15:30"},
+  {id:"S4",label:"第4大节",time:"15:50~18:10"},
+  {id:"S5",label:"第5大节",time:"19:00~21:20"}
+];
+
+/* 16周课表（2026-2027-1，week1=2026-09-14） */
+var SCHEDULE = [
+  {n:"机械控制工程基础",t:"肖先锋讲师",w:"1-11",loc:"慧源楼338",d:0,s:"S2"},
+  {n:"工程热力学与传热学",t:"曾文副教授",w:"1-11",loc:"机电楼D204",d:0,s:"S3"},
+  {n:"大学生职业生涯规划与就业指导（2）",t:"付自强讲师",w:"15-16",loc:"慧源楼229",d:0,s:"S3"},
+  {n:"机械设计",t:"陈建锋副教授",w:"1-7",loc:"机电楼D202",d:1,s:"S5"},
+  {n:"制造系统建模与仿真",t:"张海涛讲师",w:"1-11",loc:"机电楼D302",d:2,s:"S2"},
+  {n:"制造系统建模与仿真",t:"张海涛讲师",w:"12-13",loc:"机电楼D410",d:2,s:"S2"},
+  {n:"机械创新设计",t:"刘旭波副教授",w:"1-11",loc:"机电楼D204",d:2,s:"S3"},
+  {n:"机械控制工程基础",t:"肖先锋讲师",w:"12",loc:"机电楼D316",d:2,s:"S3"},
+  {n:"机械制造工程学",t:"余廷副教授",w:"1-14",loc:"机电楼D201",d:3,s:"S2"},
+  {n:"聪慧的源泉——数学导读",t:"黄先玖教授",w:"1,5,10,15",loc:"慧源楼241",d:3,s:"S3"},
+  {n:"聪慧的源泉——数学导读",t:"黄先玖教授",w:"2-4,6-9,11-14,16",loc:"线上MOOC（前湖虚拟教室）",d:3,s:"S3"},
+  {n:"文脉汇赏——劳动美学与鉴赏",t:"龙春英副教授",w:"1",loc:"慧源楼117",d:3,s:"S5"},
+  {n:"文脉汇赏——劳动美学与鉴赏",t:"龙春英副教授",w:"11-14",loc:"户外04（前湖北）",d:3,s:"S5"},
+  {n:"流体力学（2）",t:"卢敏未评级",w:"1-11",loc:"机电楼D202",d:4,s:"S2"},
+  {n:"机械设计",t:"陈建锋副教授",w:"1,3-8",loc:"机电楼D202",d:4,s:"S4"},
+  {n:"工程热力学与传热学",t:"曾文副教授",w:"9",loc:"机电楼E528（工程热力学实验室）",d:5,s:"S1"},
+  {n:"流体力学（2）",t:"卢敏未评级",w:"11",loc:"机电楼E529（流体力学实验室）",d:5,s:"S1"},
+  {n:"机械制造工程学",t:"余廷副教授",w:"13",loc:"机电楼D116A",d:5,s:"S1"},
+  {n:"工程热力学与传热学",t:"曾文副教授",w:"9",loc:"机电楼E528/E527（实验室）",d:5,s:"S2"},
+  {n:"流体力学（2）",t:"卢敏未评级",w:"11",loc:"机电楼E529（流体力学实验室）",d:5,s:"S2"},
+  {n:"机械制造工程学",t:"余廷副教授",w:"13",loc:"机电楼D116A",d:5,s:"S2"},
+  {n:"机械设计",t:"陈建锋副教授,李敬会其他中级",w:"6",loc:"机电楼D418（轴系组合设计实验室）",d:5,s:"S3"},
+  {n:"机械制造工程学",t:"余廷副教授",w:"13",loc:"汽车电子楼112",d:5,s:"S3"},
+  {n:"机械设计",t:"陈建锋副教授,李敬会其他中级",w:"14",loc:"机电楼D427（机构运动参数测试实验室）",d:5,s:"S3"},
+  {n:"机械设计",t:"陈建锋副教授,李敬会其他中级",w:"11",loc:"机电楼D416（机构运动方案设计实验室）",d:6,s:"S1"},
+  {n:"机械设计",t:"陈建锋副教授,李敬会其他中级",w:"11",loc:"机电楼D416/D427（实验室）",d:6,s:"S2"}
+];
+var NOTES = [
+  {n:"体育（5）",t:"朱婧",w:"1-12",loc:"时段以老师通知为准（可能在中午）"},
+  {n:"机械创新设计",t:"刘旭波",w:"12-16",loc:"时段以老师通知为准"},
+  {n:"机械设计课程设计",t:"许文虎",w:"13-15",loc:"时段以老师通知为准"},
+  {n:"文脉汇赏——劳动美学与鉴赏",t:"龙春英,邱璟",w:"2-10,15-16",loc:"时段以老师通知为准"},
+  {n:"大学生职业生涯规划与就业指导（2）",t:"邓素瑶",w:"12-16",loc:"时段以老师通知为准"}
+];
+
+/* 三分化动作库 */
+var SPLITS = {
+  push:{key:"push",day:2,name:"推 · 胸+肩前中束+三头",desc:"周二 16:30"},
+  pull:{key:"pull",day:4,name:"拉 · 背+二头+小臂+肩后束",desc:"周四 16:30"},
+  shoulder:{key:"shoulder",day:6,name:"肩+臂+腹",desc:"周六 16:30"}
+};
+var EXERCISES = {
+  push:[
+    {id:"bp",n:"杠铃卧推",sets:3,lo:8,hi:10,unit:"reps",type:"bar",alt:"哑铃卧推 / 器械推胸",tip:"肩胛后收下沉，杠触胸中下缘，离心2-3秒"},
+    {id:"idbp",n:"上斜哑铃卧推",sets:3,lo:8,hi:10,unit:"reps",type:"db",alt:"上斜器械推胸",tip:"上斜30-45°，哑铃下放至上胸两侧"},
+    {id:"sp",n:"坐姿器械肩推",sets:3,lo:8,hi:10,unit:"reps",type:"mac",alt:"坐姿哑铃肩推",tip:"肘略前于身体，下放至耳侧，勿耸肩"},
+    {id:"latr",n:"哑铃侧平举",sets:3,lo:12,hi:15,unit:"reps",type:"db",alt:"绳索侧平举",tip:"肘微屈，抬至肩高，小重量慢速"},
+    {id:"pushdown",n:"绳索下压",sets:3,lo:10,hi:12,unit:"reps",type:"mac",alt:"直杆下压",tip:"肘夹紧贴身，只动前臂"},
+    {id:"skt",n:"仰卧哑铃臂屈伸",sets:3,lo:10,hi:12,unit:"reps",type:"db",alt:"颈后绳索臂屈伸",tip:"上臂垂直地面，肘尖朝上"}
+  ],
+  pull:[
+    {id:"latpd",n:"高位下拉",sets:3,lo:8,hi:10,unit:"reps",type:"mac",alt:"辅助引体向上",tip:"下拉至锁骨，挺胸，勿耸肩"},
+    {id:"row",n:"坐姿绳索划船",sets:3,lo:8,hi:10,unit:"reps",type:"mac",alt:"器械划船",tip:"拉向腹部，肩胛主动夹紧"},
+    {id:"dbrow",n:"单臂哑铃划船",sets:3,lo:8,hi:10,unit:"reps",type:"db",alt:"单臂器械划船",tip:"背平，肘沿身体后拉"},
+    {id:"facpull",n:"面拉",sets:3,lo:12,hi:15,unit:"reps",type:"mac",alt:"反向蝴蝶机",tip:"绳索拉向眉间，肘高于手"},
+    {id:"curl",n:"杠铃弯举",sets:3,lo:10,hi:12,unit:"reps",type:"bar",alt:"哑铃交替弯举",tip:"肘固定于体侧，勿借力摆动"},
+    {id:"hcurl",n:"锤式弯举",sets:3,lo:10,hi:12,unit:"reps",type:"db",alt:"绳索锤式弯举",tip:"掌心相对握，练肱肌与小臂"},
+    {id:"wrist",n:"腕弯举+反握",sets:2,lo:15,hi:20,unit:"reps",type:"db",alt:"手腕卷绳",tip:"前臂垫于大腿，仅手腕运动"}
+  ],
+  shoulder:[
+    {id:"dsp",n:"哑铃肩推",sets:3,lo:8,hi:10,unit:"reps",type:"db",alt:"器械肩推",tip:"核心收紧，勿反弓腰"},
+    {id:"revfly",n:"反向蝴蝶机",sets:3,lo:12,hi:15,unit:"reps",type:"mac",alt:"俯身哑铃飞鸟",tip:"肩胛带动，顶端停顿1秒"},
+    {id:"latr2",n:"哑铃侧平举",sets:3,lo:12,hi:15,unit:"reps",type:"db",alt:"绳索侧平举",tip:"肘微屈，抬至肩高"},
+    {id:"pd2",n:"绳索下压",sets:3,lo:10,hi:12,unit:"reps",type:"mac",alt:"直杆下压",tip:"肘夹紧贴身"},
+    {id:"conc",n:"哑铃集中弯举",sets:3,lo:10,hi:12,unit:"reps",type:"db",alt:"单臂牧师凳弯举",tip:"肘抵大腿内侧，顶峰收缩"},
+    {id:"crunch",n:"卷腹",sets:3,lo:15,hi:20,unit:"reps",type:"bw",alt:"健身球卷腹",tip:"下背贴垫，呼气卷起"},
+    {id:"legraise",n:"悬垂举腿",sets:3,lo:10,hi:15,unit:"reps",type:"bw",alt:"仰卧举腿",tip:"骨盆后倾卷起，慢速下放"},
+    {id:"plank",n:"平板支撑",sets:3,lo:45,hi:60,unit:"sec",type:"bw",alt:"侧平板",tip:"身体成直线，臀不塌"}
+  ]
+};
+
+/* 食堂饮食库（碳水c/蛋白p/脂肪f/纤维fib/热量k） */
+var DIET = [
+  {g:"早餐（目标≈25g蛋白）",items:[
+    {id:"b1",n:"鸡蛋 ×2",p:12,c:2,f:10,fib:0,k:150},
+    {id:"b2",n:"牛奶 250ml",p:8,c:12,f:8,fib:0,k:150},
+    {id:"b3",n:"豆浆 300ml",p:6,c:9,f:3,fib:1.5,k:120},
+    {id:"b4",n:"肉包/菜包 1个",p:8,c:42,f:7,fib:2,k:250},
+    {id:"b5",n:"馒头/杂粮粥",p:4,c:32,f:1,fib:1,k:150},
+    {id:"b6",n:"燕麦+奶 1碗",p:8,c:35,f:4,fib:4,k:220}
+  ]},
+  {g:"午餐（约35-40g蛋白）",items:[
+    {id:"m1",n:"鸡腿 1个",p:25,c:0,f:12,fib:0,k:220},
+    {id:"m2",n:"鱼/虾 1份",p:28,c:1,f:7,fib:0,k:180},
+    {id:"m3",n:"瘦猪肉/牛肉 1份",p:25,c:2,f:16,fib:0,k:250},
+    {id:"m4",n:"豆腐/豆干 1份",p:12,c:6,f:9,fib:2,k:160},
+    {id:"m5",n:"鸡蛋炒菜 1份",p:10,c:8,f:12,fib:3,k:180},
+    {id:"m6",n:"米饭 1.5-2拳",p:6,c:88,f:0.6,fib:1.5,k:400},
+    {id:"m7",n:"蔬菜 2份",p:4,c:12,f:2,fib:5,k:100}
+  ]},
+  {g:"晚餐（约30-35g蛋白）",items:[
+    {id:"d1",n:"鸡腿 1个",p:25,c:0,f:12,fib:0,k:220},
+    {id:"d2",n:"鱼/虾 1份",p:28,c:1,f:7,fib:0,k:180},
+    {id:"d3",n:"瘦猪肉/牛肉 1份",p:25,c:2,f:16,fib:0,k:250},
+    {id:"d4",n:"豆腐/豆干 1份",p:12,c:6,f:9,fib:2,k:160},
+    {id:"d5",n:"鸡蛋炒菜 1份",p:10,c:8,f:12,fib:3,k:180},
+    {id:"d6",n:"米饭 1.5-2拳",p:6,c:88,f:0.6,fib:1.5,k:400},
+    {id:"d7",n:"蔬菜 2份",p:4,c:12,f:2,fib:5,k:100}
+  ]},
+  {g:"加餐（训练后≈10g + 睡前≈10g）",items:[
+    {id:"s1",n:"牛奶 250ml",p:8,c:12,f:8,fib:0,k:150},
+    {id:"s2",n:"酸奶 200g",p:6,c:14,f:3.5,fib:0,k:130},
+    {id:"s3",n:"全麦面包 2片",p:8,c:30,f:3,fib:4,k:180},
+    {id:"s4",n:"香蕉 1根",p:1.5,c:27,f:0.3,fib:3,k:105},
+    {id:"s5",n:"坚果 25g",p:5,c:6,f:14,fib:2.5,k:160},
+    {id:"s6",n:"水煮蛋 1个",p:6,c:1,f:5,fib:0,k:70},
+    {id:"s7",n:"乳清蛋白粉 1勺(30g)",p:24,c:3,f:1.5,fib:0,k:120}
+  ]}
+];
+
+/* ===== 存储 ===== */
+var memStore = {};
+var store = (function(){
+  try { localStorage.setItem("__fw_test","1"); localStorage.removeItem("__fw_test"); return localStorage; }
+  catch(e){
+    return { getItem:function(k){return (k in memStore)?memStore[k]:null;},
+             setItem:function(k,v){memStore[k]=String(v);},
+             removeItem:function(k){delete memStore[k];} };
+  }
+})();
+function load(key,def){ try{ var v=store.getItem(key); return v?JSON.parse(v):def; }catch(e){ return def; } }
+function save(key,val){ try{ store.setItem(key,JSON.stringify(val)); }catch(e){ alert("无法写入浏览器存储（可能被禁用），数据仅本次有效。"); } }
+
+var DEFAULTS={week1:"2026-09-14",protein:120,carbs:300,fat:75,fiber:25,kcal:2400,apiKey:""};
+var settings=load("fw_settings",DEFAULTS);
+Object.keys(DEFAULTS).forEach(function(k){ if(settings[k]===undefined||settings[k]===null) settings[k]=DEFAULTS[k]; });
+save("fw_settings",settings);
+var APP_VERSION=3;
+if(load("fw_version",0)!==APP_VERSION){ /* 未来数据迁移写在这里 */ save("fw_version",APP_VERSION); }
+var train = load("fw_train",{});
+var diet = load("fw_diet",{});
+var weight = load("fw_weight",{});
+
+/* ===== 工具 ===== */
+function $(id){ return document.getElementById(id); }
+var DAY_MS = 86400000;
+function startOfDay(d){ return new Date(d.getFullYear(),d.getMonth(),d.getDate()); }
+function dstr(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function pdate(s){ var a=s.split("-").map(Number); return new Date(a[0],a[1]-1,a[2]); }
+function md(d){ return (d.getMonth()+1)+"月"+d.getDate()+"日"; }
+function today(){ return startOfDay(new Date()); }
+function weekOf(d){
+  var w1=pdate(settings.week1);
+  return Math.floor((startOfDay(d)-w1)/DAY_MS/7)+1;
+}
+function weekDates(w){
+  var w1=pdate(settings.week1);
+  var s=new Date(w1.getTime()+(w-1)*7*DAY_MS);
+  var e=new Date(s.getTime()+6*DAY_MS);
+  return md(s)+" ~ "+md(e);
+}
+function parseWeeks(spec){
+  var set={};
+  spec.split(",").forEach(function(part){
+    var m=part.match(/^(\d+)-(\d+)$/);
+    if(m){ for(var i=+m[1];i<=+m[2];i++) set[i]=1; }
+    else set[+part]=1;
+  });
+  return set;
+}
+function inWeeks(spec,w){ return !!parseWeeks(spec)[w]; }
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+/* ===== 标签页 ===== */
+var currentTab="today";
+function switchTab(name){
+  currentTab=name;
+  var views=document.querySelectorAll(".view");
+  for(var i=0;i<views.length;i++) views[i].classList.add("hide");
+  $("view-"+name).classList.remove("hide");
+  var btns=document.querySelectorAll("#tabs button");
+  for(var j=0;j<btns.length;j++) btns[j].classList.toggle("active",btns[j].dataset.tab===name);
+  renderAll();
+}
+document.querySelectorAll("#tabs button").forEach(function(b){
+  b.addEventListener("click",function(){ switchTab(b.dataset.tab); });
+});
+
+/* ===== 今日 ===== */
+function renderToday(){
+  var d=today(), dow=d.getDay(), w=weekOf(d);
+  var weekLabel=(w<1)?"假期（未开学）":("第"+w+"周");
+  var split=(dow===2)?"push":(dow===4)?"pull":(dow===6)?"shoulder":null;
+  var html="";
+  html+='<div class="card"><div class="row">';
+  html+='<div class="cell"><div class="mut">'+dstr(d)+" · "+DAYS[(dow+6)%7]+" · "+weekLabel;
+  if(w>=1&&w<=16&&w%4===0) html+=' <span class="tag warn">减载周（重量×0.8）</span>';
+  html+='</div><div class="big">'+DAYS[(dow+6)%7]+'</div></div>';
+  if(split){
+    var sp=SPLITS[split], done=!!(train[dstr(d)]&&train[dstr(d)].split===split);
+    html+='<div class="cell"><h2>今天练：'+sp.name+'</h2><div><span class="tag">'+sp.desc+'</span><span class="tag">时长≈60min</span><span class="tag">热身5-8 + 正式45-50 + 拉伸5</span></div><div class="mut" style="margin-top:6px">'+(done?'✅ 已打卡':'⏳ 未打卡')+'</div><button class="btn" style="margin-top:8px" onclick="switchTab(\'training\')">去打卡</button></div>';
+  } else {
+    html+='<div class="cell"><h2>今天休息</h2><div><span class="tag rest">恢复日</span><span class="tag">周二/四/六 16:30 训练</span></div><div class="mut" style="margin-top:6px">休息日吃够蛋白质，散步/拉伸即可。</div></div>';
+  }
+  if(dow===0){
+    html+='<div class="cell"><h2>周日称重</h2><div class="mut">晨起空腹称重并记录到「趋势」页。周增重目标 +0.25~0.5kg。</div></div>';
+  }
+  html+='</div></div>';
+
+  var todayCourses=SCHEDULE.filter(function(c){ return c.d===(dow+6)%7&&inWeeks(c.w,w); });
+  html+='<div class="card"><h2>今天课表</h2>';
+  if(todayCourses.length===0) html+='<div class="mut">今天无课。</div>';
+  else{
+    html+='<table><tr><th>时间</th><th>课程</th><th>地点</th></tr>';
+    SLOTS.forEach(function(sl){
+      var cs=todayCourses.filter(function(c){return c.s===sl.id;});
+      if(cs.length) html+='<tr><td>'+sl.time+'</td><td>'+cs.map(function(c){return '<b>'+esc(c.n)+'</b><div class="mut">'+esc(c.t)+'</div>';}).join("")+'</td><td>'+cs.map(function(c){return esc(c.loc);}).join("<br>")+'</td></tr>';
+    });
+    html+='</table>';
+  }
+  html+='</div>';
+
+  var nt=NOTES.filter(function(n){ return inWeeks(n.w,w); });
+  if(nt.length){
+    html+='<div class="card notes"><h2>本周特殊安排</h2><ul>';
+    nt.forEach(function(n){ html+='<li><b>'+esc(n.n)+'</b>（'+esc(n.t)+'）— '+esc(n.loc)+'</li>'; });
+    html+='</ul></div>';
+  }
+  $("view-today").innerHTML=html;
+}
+
+/* ===== 课表 ===== */
+var schedWeek=null;
+function renderSchedule(){
+  if(schedWeek===null){ var w=weekOf(today()); schedWeek=Math.max(1,Math.min(16,w)); }
+  var w=schedWeek;
+  var html='<div class="card"><div class="row" style="align-items:center">';
+  html+='<button class="btn" onclick="schedShift(-1)">◀ 上周</button>';
+  html+='<h2 style="margin:0">第'+w+'周课表 <span class="mut">（'+weekDates(w)+'）</span></h2>';
+  html+='<button class="btn" onclick="schedShift(1)">下周 ▶</button>';
+  html+='<span class="tag" style="margin-left:auto">🏋 训练：周二/四/六 16:30</span>';
+  html+='</div>';
+  html+='<div class="scroll-x"><div class="scrollhint">← 左右滑动查看整周 →</div><table class="sched"><tr><th style="width:80px">时间</th>';
+  for(var d=0;d<7;d++) html+='<th>'+DAYS[d]+'</th>';
+  html+='</tr>';
+  SLOTS.forEach(function(sl){
+    html+='<tr><td><b>'+sl.label+'</b><div class="mut">'+sl.time+'</div></td>';
+    for(var d=0;d<7;d++){
+      var cs=SCHEDULE.filter(function(c){return c.d===d&&c.s===sl.id&&inWeeks(c.w,w);});
+      var isTrain=sl.id==="S4"&&(d===1||d===3||d===5);
+      html+='<td'+(isTrain?' class="slot-train"':"")+'>';
+      cs.forEach(function(c){
+        html+='<div style="margin-bottom:4px"><b>'+esc(c.n)+'</b><div class="mut">'+esc(c.t)+'</div><div>'+esc(c.loc)+'</div></div>';
+      });
+      if(isTrain) html+='<span class="tag">🏋 训练 16:30-17:30</span>';
+      html+='</td>';
+    }
+    html+='</tr>';
+  });
+  html+='</table></div></div>';
+
+  var nt=NOTES.filter(function(n){ return inWeeks(n.w,w); });
+  html+='<div class="card notes"><h2>第'+w+'周备注 / 特殊安排</h2>';
+  if(nt.length===0) html+='<div class="mut">本周无备注。</div>';
+  else{ html+='<ul>'; nt.forEach(function(n){ html+='<li><b>'+esc(n.n)+'</b>（'+esc(n.t)+'）— '+esc(n.loc)+'</li>'; }); html+='</ul>'; }
+  html+='</div>';
+  $("view-schedule").innerHTML=html;
+}
+function schedShift(d){ schedWeek=Math.max(1,Math.min(16,schedWeek+d)); renderSchedule(); }
+
+/* ===== 训练 ===== */
+var trainDate=null, trainSplit=null;
+function renderTraining(){
+  var d=today();
+  if(trainDate===null) trainDate=dstr(d);
+  if(trainSplit===null){ var dow=d.getDay(); trainSplit=(dow===2)?"push":(dow===4)?"pull":(dow===6)?"shoulder":"push"; }
+  var w=weekOf(d);
+  var html="";
+  html+='<div class="card"><div class="row" style="align-items:center;gap:6px">';
+  Object.keys(SPLITS).forEach(function(k){
+    var sp=SPLITS[k];
+    html+='<button class="splitbtn'+(trainSplit===k?" active":"")+'" onclick="setSplit(\''+k+'\')">'+DAYS[sp.day]+' · '+(k==="push"?"推":k==="pull"?"拉":"肩臂腹")+'</button>';
+  });
+  html+='<label style="margin:0 0 0 auto;min-width:150px">打卡日期 <input type="date" id="trainDate" value="'+trainDate+'"></label>';
+  html+='</div>';
+  if(w>=1&&w<=16&&w%4===0){
+    html+='<div class="banner">第'+w+'周为减载周：所有重量 ×0.8，组数不变，保留1-2次余力，动作放慢。每4周第4周减载。</div>';
+  }
+  html+='<div class="mut" style="margin-bottom:8px">节奏：热身5-8min（快走+关节环绕+轻重量1-2组）→ 正式45-50min → 拉伸5min。要点：离心2-3秒、发力呼气、RIR 1-2。</div>';
+  html+='</div>';
+
+  var exs=EXERCISES[trainSplit], log=train[trainDate]||{split:trainSplit,ex:{}};
+  html+='<div class="card"><h2>'+SPLITS[trainSplit].name+' <span class="mut">自动保存</span></h2>';
+  html+='<div class="scroll-x"><div class="scrollhint">← 左右滑动查看动作/次数 →</div><table><tr><th>动作</th><th style="width:72px">组×次</th><th style="width:110px">重量kg</th><th>每组次数/秒</th><th style="width:120px">渐进提示</th></tr>';
+  exs.forEach(function(ex){
+    var rec=log.ex[ex.id]||{w:"",r:[],done:false};
+    html+='<tr><td><b>'+esc(ex.n)+'</b><div class="tip">备选：'+esc(ex.alt)+'<br>要点：'+esc(ex.tip)+'</div></td>';
+    html+='<td>'+ex.sets+'×'+ex.lo+'-'+ex.hi+(ex.unit==="sec"?"s":"")+'</td>';
+    html+='<td>'+(ex.type==="bw"?'<span class="tag rest">自重</span>':'<input type="number" class="w40" data-ex="'+ex.id+'" data-f="w" value="'+rec.w+'" step="0.5" min="0">')+'</td>';
+    html+='<td><span class="row" style="gap:4px">';
+    for(var i=0;i<ex.sets;i++){
+      html+='<input type="number" class="w40" data-ex="'+ex.id+'" data-f="r'+i+'" value="'+(rec.r[i]!==undefined?rec.r[i]:"")+'" min="0" placeholder="'+(ex.unit==="sec"?"秒":"次")+'">';
+    }
+    html+='</span></td><td class="tip">'+progHint(ex)+'</td></tr>';
+  });
+  html+='</table></div></div>';
+  $("view-training").innerHTML=html;
+  $("trainDate").addEventListener("change",function(){ trainDate=this.value; renderTraining(); });
+  document.querySelectorAll('#view-training input[data-ex]').forEach(function(inp){
+    inp.addEventListener("input",function(){ saveTrain(inp); });
+  });
+}
+function setSplit(k){ trainSplit=k; renderTraining(); }
+function saveTrain(inp){
+  var exId=inp.dataset.ex, f=inp.dataset.f, v=parseFloat(inp.value);
+  if(!train[trainDate]) train[trainDate]={split:trainSplit,ex:{}};
+  var rec=train[trainDate].ex;
+  if(!rec[exId]) rec[exId]={w:"",r:[]};
+  if(f==="w") rec[exId].w=isNaN(v)?"":v;
+  else rec[exId].r[+f.slice(1)]=isNaN(v)?"":v;
+  save("fw_train",train);
+}
+function histFor(ex){
+  var dates=Object.keys(train).sort();
+  var out=[];
+  dates.forEach(function(dt){
+    var t=train[dt], rec=t&&t.ex&&t.ex[ex.id];
+    if(rec&&(rec.w!==""||rec.r.some(function(x){return x!==""&&x!==undefined;}))) out.push({date:dt,w:rec.w,r:rec.r});
+  });
+  return out;
+}
+function progHint(ex){
+  if(ex.type==="bw") return "自重：先做满目标次数，再做不动时减难度/加次数";
+  var h=histFor(ex);
+  if(h.length===0) return "首练：从空杆/轻重量试起，找一组只能做8-12次的重量";
+  var last=h[h.length-1];
+  if(last.w===""||last.w===undefined||last.w===null) return "先记录重量后给出加重建议";
+  var top=0, allTop=true;
+  last.r.forEach(function(r){ if(r===""||r===undefined) allTop=false; else if(r>top) top=r; });
+  var inc=(ex.type==="bar"||ex.type==="mac")?2.5:1.5;
+  var streak=0;
+  for(var i=h.length-1;i>=0;i--){
+    var rec=h[i], ok=true;
+    for(var j=0;j<ex.sets;j++){ var r=rec.r[j]; if(r===""||r===undefined||r<ex.hi){ ok=false; break; } }
+    if(!ok) break;
+    streak++;
+  }
+  var sug=last.w+(streak>=2?inc:0);
+  return "上次 "+last.w+"kg → 下次 "+sug+"kg"+(streak>=2?"（连续2次达上限，+"+inc+"kg）":"（未连续2次达上限，先保持）");
+}
+
+/* ===== 饮食 ===== */
+var dietDate=null;
+function renderDiet(){
+  if(dietDate===null) dietDate=dstr(today());
+  var rec=diet[dietDate]||{items:{}};
+  var html='<div class="card"><div class="row" style="align-items:center">';
+  html+='<h2 style="margin:0">饮食打卡</h2><label style="margin:0 0 0 auto;min-width:150px">日期 <input type="date" id="dietDate" value="'+dietDate+'"></label>';
+  html+='</div>';
+  html+='<div class="mut" style="margin-top:6px">目标：碳水 '+settings.carbs+'g / 蛋白 '+settings.protein+'g / 脂肪 '+settings.fat+'g / 纤维 '+settings.fiber+'g / 热量 '+settings.kcal+' kcal。三餐食堂+两次加餐，训练日主食多一拳。</div>';
+  html+='</div>';
+
+  html+=photoCardHTML();
+  DIET.forEach(function(grp){
+    html+='<div class="card"><h2>'+grp.g+'</h2>';
+    grp.items.forEach(function(it){
+      var on=!!rec.items[it.id];
+      html+='<div class="diet-item"><input type="checkbox" id="d_'+it.id+'" '+(on?"checked":"")+' onchange="toggleDiet(\''+it.id+'\')"><span>'+esc(it.n)+'</span><span class="p">蛋白 '+it.p+'g · 碳水 '+it.c+'g · 脂肪 '+it.f+'g · 纤维 '+it.fib+'g</span><span class="k">'+it.k+' kcal</span></div>';
+    });
+    html+='</div>';
+  });
+
+  var aiKeys=Object.keys(rec.items).filter(function(k){ return k.indexOf("ai")===0; });
+  if(aiKeys.length){
+    html+='<div class="card"><h2>拍照识别计入</h2>';
+    aiKeys.forEach(function(k){
+      var it=rec.items[k];
+      html+='<div class="diet-item"><span>🍽 '+esc(it.n||"餐食")+'</span><span class="p">蛋白 '+it.p+'g · 碳水 '+it.c+'g · 脂肪 '+it.f+'g · 纤维 '+it.fib+'g</span><span class="k">'+it.k+' kcal</span><button class="btn" style="margin-left:auto;padding:2px 8px" onclick="removeAiItem(\''+k+'\')">✕</button></div>';
+    });
+    html+='</div>';
+  }
+
+  var t=dayTotals(rec);
+  html+='<div class="card"><h2>今日合计</h2>';
+  html+=barHtml("碳水",t.c,settings.carbs,"g","bar");
+  html+=barHtml("蛋白质",t.p,settings.protein,"g","bar");
+  html+=barHtml("脂肪",t.f,settings.fat,"g","bar");
+  html+=barHtml("膳食纤维",t.fib,settings.fiber,"g","bar");
+  html+=barHtml("热量",t.k,settings.kcal," kcal","bar kcal");
+  html+='</div>';
+  $("view-diet").innerHTML=html;
+  $("dietDate").addEventListener("change",function(){ dietDate=this.value; renderDiet(); });
+  initPhoto();
+}
+function barHtml(label,val,target,unit,cls){
+  var pct=Math.min(100,Math.round(val/target*100));
+  var ok=val>=target;
+  return '<div class="prog">'+label+' <b>'+val+'</b> / '+target+unit+' <span class="tag'+(ok?"":" warn")+'">'+(ok?"已达标":"还差 "+(target-val)+unit)+'</span></div><div class="'+cls+'"><i style="width:'+pct+'%"></i></div>';
+}
+function toggleDiet(id){
+  if(!diet[dietDate]) diet[dietDate]={items:{}};
+  var rec=diet[dietDate];
+  if(rec.items[id]) delete rec.items[id]; else rec.items[id]=1;
+  save("fw_diet",diet);
+  renderDiet();
+}
+function entryMacros(id,val){
+  if(val&&typeof val==="object") return {p:val.p||0,c:val.c||0,f:val.f||0,fib:val.fib||0,k:val.k||0};
+  for(var g=0;g<DIET.length;g++){
+    for(var j=0;j<DIET[g].items.length;j++){
+      var it=DIET[g].items[j];
+      if(it.id===id) return {p:it.p,c:it.c,f:it.f,fib:it.fib,k:it.k};
+    }
+  }
+  return null;
+}
+function dayTotals(rec){
+  var t={p:0,c:0,f:0,fib:0,k:0};
+  Object.keys(rec.items||{}).forEach(function(id){
+    var m=entryMacros(id,rec.items[id]);
+    if(m){ t.p+=m.p; t.c+=m.c; t.f+=m.f; t.fib+=m.fib; t.k+=m.k; }
+  });
+  return t;
+}
+function removeAiItem(id){
+  if(diet[dietDate]&&diet[dietDate].items[id]){
+    delete diet[dietDate].items[id];
+    save("fw_diet",diet);
+    renderDiet();
+  }
+}
+function photoCardHTML(){
+  return '<div class="card"><h2>拍照识别营养 <span class="mut">智谱 GLM-4V-Flash（免费）· 填了Key走直连，否则电脑中转</span></h2>'+
+  '<div class="mut" id="photoHint"></div>'+
+  '<div class="row" style="align-items:center;gap:8px">'+
+  '<button class="btn" id="btnPhoto">📷 拍照/选图</button>'+
+  '<input type="file" id="photoInput" accept="image/*" class="hide">'+
+  '<span class="mut" id="photoStatus"></span></div>'+
+  '<img id="photoPreview" alt="" style="max-width:260px;border-radius:10px;display:none;margin-top:10px">'+
+  '<div id="photoResult" class="hide" style="margin-top:10px">'+
+  '<label>餐食名</label><input type="text" id="aiName">'+
+  '<div class="row"><div class="cell"><label>碳水 g</label><input type="number" id="aiCarbs" step="0.1"></div>'+
+  '<div class="cell"><label>蛋白 g</label><input type="number" id="aiProtein" step="0.1"></div>'+
+  '<div class="cell"><label>脂肪 g</label><input type="number" id="aiFat" step="0.1"></div>'+
+  '<div class="cell"><label>纤维 g</label><input type="number" id="aiFiber" step="0.1"></div>'+
+  '<div class="cell"><label>热量 kcal</label><input type="number" id="aiKcal" step="1"></div></div>'+
+  '<div class="mut" id="aiNote" style="margin-top:6px"></div>'+
+  '<button class="btn" id="btnAiAdd" style="margin-top:10px;background:#1f6f5f;color:#fff;border-color:#1f6f5f">计入当日打卡</button>'+
+  '</div></div>';
+}
+var AI_PROMPT='你是营养师。估算图中这份餐食（单份/一盘）的营养成分。只输出严格JSON对象，不要代码块、不要多余文字：{"name":"餐食名称","carbs":数字克数,"protein":数字克数,"fat":数字克数,"fiber":数字克数,"kcal":数字千卡,"note":"30字内说明与置信度"}。数值必须是数字。按盘中可见份量估算。';
+function parseAiContent(content){
+  var s=String(content).trim();
+  if(s.indexOf("```")===0) s=s.replace(/^```[a-zA-Z]*/,"").replace(/```$/,"").trim();
+  var a=s.indexOf("{"), b=s.lastIndexOf("}");
+  if(a<0||b<a) throw new Error("返回内容不含JSON");
+  var o=JSON.parse(s.slice(a,b+1));
+  function n(k){ var v=parseFloat(o[k]); return isNaN(v)?0:Math.max(0,Math.round(v*10)/10); }
+  return {name:String(o.name||"餐食").slice(0,30),carbs:n("carbs"),protein:n("protein"),fat:n("fat"),fiber:n("fiber"),kcal:n("kcal"),note:String(o.note||"").slice(0,100)};
+}
+function callZhipuDirect(b64){
+  return fetch("https://open.bigmodel.cn/api/paas/v4/chat/completions",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+settings.apiKey},
+    body:JSON.stringify({model:"glm-4v-flash",messages:[{role:"user",content:[
+      {type:"image_url",image_url:{url:"data:image/jpeg;base64,"+b64}},
+      {type:"text",text:AI_PROMPT}
+    ]}],temperature:0.1})
+  }).then(function(r){ return r.json(); }).then(function(j){
+    if(j.choices&&j.choices[0]&&j.choices[0].message) return parseAiContent(j.choices[0].message.content);
+    throw new Error((j.error&&j.error.message)||"响应格式异常");
+  });
+}
+function resizeToJpeg(dataUrl,maxSide,cb){
+  var img=new Image();
+  img.onload=function(){
+    var scale=Math.min(1,maxSide/Math.max(img.width,img.height));
+    var c=document.createElement("canvas");
+    c.width=Math.max(1,Math.round(img.width*scale));
+    c.height=Math.max(1,Math.round(img.height*scale));
+    c.getContext("2d").drawImage(img,0,0,c.width,c.height);
+    cb(c.toDataURL("image/jpeg",0.82).split(",")[1]);
+  };
+  img.onerror=function(){ cb(String(dataUrl).split(",")[1]||""); };
+  img.src=dataUrl;
+}
+function analyzePhoto(b64){
+  if(settings.apiKey) return callZhipuDirect(b64);
+  return fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({image:b64})})
+  .then(function(r){ return r.json().then(function(j){
+    if(r.status!==200||!j.ok) throw new Error((j&&j.error)||"服务器错误");
+    return j.data;
+  }); });
+}
+function initPhoto(){
+  var btn=$("btnPhoto"), inp=$("photoInput");
+  if(!btn) return;
+  if(!settings.apiKey&&location.protocol==="file:"){
+    $("photoHint").textContent="当前以本地文件打开且未填API Key，拍照识别不可用；请在「设置」填入智谱Key，或用电脑服务器地址打开。";
+    btn.disabled=true; btn.style.opacity="0.5";
+    return;
+  }
+  $("photoHint").textContent=settings.apiKey?"直连模式：使用设置里的智谱Key，不依赖电脑。":"";
+  btn.addEventListener("click",function(){ inp.click(); });
+  inp.addEventListener("change",function(){
+    var f=inp.files[0]; if(!f) return;
+    $("photoStatus").textContent="识别中…（约5-15秒）";
+    $("photoResult").classList.add("hide");
+    var rd=new FileReader();
+    rd.onload=function(){
+      var dataUrl=String(rd.result);
+      $("photoPreview").src=dataUrl; $("photoPreview").style.display="block";
+      resizeToJpeg(dataUrl,1024,function(b64){
+        analyzePhoto(b64).then(function(d){
+          $("aiName").value=d.name||""; $("aiCarbs").value=d.carbs; $("aiProtein").value=d.protein;
+          $("aiFat").value=d.fat; $("aiFiber").value=d.fiber; $("aiKcal").value=d.kcal;
+          $("aiNote").textContent=d.note||"";
+          $("photoStatus").textContent="识别完成：可修改数值，再点「计入当日打卡」。";
+          $("photoResult").classList.remove("hide");
+        }).catch(function(e){
+          $("photoStatus").textContent="识别失败："+(e&&e.message||e)+"。直连模式请检查网络与Key；中转模式请确认电脑开机并运行启动器。";
+        });
+      });
+    };
+    rd.readAsDataURL(f);
+    inp.value="";
+  });
+  $("btnAiAdd").addEventListener("click",function(){
+    var num=function(id){ var v=parseFloat($(id).value); return isNaN(v)?0:Math.round(v*10)/10; };
+    var item={n:$("aiName").value||"识别餐食",c:num("aiCarbs"),p:num("aiProtein"),f:num("aiFat"),fib:num("aiFiber"),k:num("aiKcal")};
+    if(!diet[dietDate]) diet[dietDate]={items:{}};
+    diet[dietDate].items["ai"+Date.now()]=item;
+    save("fw_diet",diet);
+    $("photoResult").classList.add("hide");
+    $("photoPreview").style.display="none";
+    $("photoStatus").textContent="已计入当日打卡 ✔";
+    renderDiet();
+  });
+}
+
+/* ===== 趋势 ===== */
+function renderTrends(){
+  var html="";
+  var dates=Object.keys(train).filter(function(dt){return train[dt]&&train[dt].split;}).sort();
+  var td=today(), monday=new Date(td.getTime()-((td.getDay()+6)%7)*DAY_MS);
+  var thisWeek=dates.filter(function(dt){ var x=pdate(dt); return x>=monday&&x<new Date(monday.getTime()+7*DAY_MS); }).length;
+  html+='<div class="card"><h2>训练出勤</h2><div class="row"><div class="cell"><div class="big">'+dates.length+'</div><div class="mut">累计训练次数</div></div><div class="cell"><div class="big">'+thisWeek+' / 3</div><div class="mut">本周（目标3次）</div></div></div>';
+  if(dates.length){
+    html+='<div style="margin-top:8px"><span class="mut">最近记录：</span>';
+    dates.slice(-8).reverse().forEach(function(dt){
+      var sp=train[dt].split, x=pdate(dt);
+      html+=' <span class="tag">'+dt.slice(5)+' '+DAYS[(x.getDay()+6)%7]+' '+(sp==="push"?"推":sp==="pull"?"拉":"肩臂腹")+'</span>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+
+  var days14=[], met=0;
+  for(var i=13;i>=0;i--){
+    var d=new Date(td.getTime()-i*DAY_MS), ds=dstr(d), rec=diet[ds];
+    if(!rec){ continue; }
+    var pp=dayTotals(rec).p;
+    days14.push({d:ds,p:pp});
+    if(pp>=settings.protein) met++;
+  }
+  var rate=days14.length?Math.round(met/days14.length*100):0;
+  html+='<div class="card"><h2>蛋白质达标（近14天）</h2><div class="big">'+rate+'% <span class="mut">（'+met+' / '+days14.length+' 个记录日 ≥'+settings.protein+'g）</span></div><div class="bar"><i style="width:'+rate+'%"></i></div></div>';
+
+  var ws=Object.keys(weight).sort();
+  html+='<div class="card"><h2>体重记录（周日晨空腹）</h2>';
+  html+='<div class="row" style="align-items:flex-end"><div class="cell"><label>日期</label><input type="date" id="wtDate" value="'+dstr(today())+'"></div><div class="cell"><label>体重 kg</label><input type="number" id="wtKg" step="0.1" min="30" max="200"></div><div class="cell" style="max-width:120px"><button class="btn" style="margin-top:6px" onclick="addWeight()">保存</button></div></div>';
+  if(ws.length){
+    var lastW=weight[ws[ws.length-1]], prevW=ws.length>1?weight[ws[ws.length-2]]:null;
+    html+='<div class="mut" style="margin-top:8px">最新 '+lastW+'kg'+(prevW!==null?'（较上次 '+(lastW-prevW>=0?"+":"")+(lastW-prevW).toFixed(1)+'kg）':"")+' · 周目标 +0.25~0.5kg</div>';
+    html+='<div style="margin-top:8px">'+weightChart(ws)+'</div>';
+  } else {
+    html+='<div class="mut" style="margin-top:8px">尚无体重记录，周日早晨称重后录入。</div>';
+  }
+  html+='</div>';
+  $("view-trends").innerHTML=html;
+}
+function addWeight(){
+  var d=$("wtDate").value, v=parseFloat($("wtKg").value);
+  if(!d){ alert("请选日期"); return; }
+  if(isNaN(v)||v<=0){ alert("请输入体重"); return; }
+  weight[d]=Math.round(v*10)/10;
+  save("fw_weight",weight);
+  renderTrends();
+}
+function weightChart(ws){
+  var W=640,H=220,padL=38,padR=14,padT=18,padB=26;
+  var vals=ws.map(function(k){return weight[k];});
+  var lo=Math.min.apply(null,vals)-1, hi=Math.max.apply(null,vals)+1;
+  if(hi-lo<2){ var mid=(lo+hi)/2; lo=mid-1; hi=mid+1; }
+  var pts=ws.map(function(k,i){
+    var x=ws.length===1?W/2:padL+(W-padL-padR)*i/(ws.length-1);
+    var y=padT+(H-padT-padB)*(1-(weight[k]-lo)/(hi-lo));
+    return {x:x,y:y};
+  });
+  var poly=pts.map(function(p){return p.x.toFixed(1)+","+p.y.toFixed(1);}).join(" ");
+  var svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;max-width:680px;height:auto;background:#fbfcfd;border:1px solid #e3e7ee;border-radius:8px">';
+  svg+='<line x1="'+padL+'" y1="'+(H-padB)+'" x2="'+(W-padR)+'" y2="'+(H-padB)+'" stroke="#d8dee8"/>';
+  svg+='<line x1="'+padL+'" y1="'+padT+'" x2="'+padL+'" y2="'+(H-padB)+'" stroke="#d8dee8"/>';
+  svg+='<text x="4" y="'+(padT+4)+'" font-size="11" fill="#68707e">'+hi.toFixed(1)+'</text>';
+  svg+='<text x="4" y="'+(H-padB-2)+'" font-size="11" fill="#68707e">'+lo.toFixed(1)+'</text>';
+  if(ws.length>1) svg+='<polyline points="'+poly+'" fill="none" stroke="#1f6f5f" stroke-width="2"/>';
+  pts.forEach(function(p,i){
+    svg+='<circle cx="'+p.x+'" cy="'+p.y+'" r="4" fill="#1f6f5f"><title>'+ws[i]+' '+weight[ws[i]]+'kg</title></circle>';
+    if(ws.length<=16) svg+='<text x="'+(p.x)+'" y="'+(H-padB+14)+'" font-size="10" fill="#68707e" text-anchor="middle">'+ws[i].slice(5)+'</text>';
+  });
+  svg+='</svg>';
+  return svg;
+}
+
+/* ===== 导出/导入/设置 ===== */
+$("btnExport").addEventListener("click",function(){
+  var data={v:APP_VERSION,settings:settings,train:train,diet:diet,weight:weight};
+  var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  var a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="健身工作台备份-"+dstr(today())+".json";
+  document.body.appendChild(a); a.click(); a.remove();
+});
+$("btnImport").addEventListener("click",function(){ $("fileImport").click(); });
+$("fileImport").addEventListener("change",function(){
+  var f=this.files[0]; if(!f) return;
+  if(!confirm("导入将覆盖当前全部打卡数据，确定继续？")){ this.value=""; return; }
+  var rd=new FileReader();
+  rd.onload=function(){
+    try{
+      var d=JSON.parse(rd.result);
+      settings=d.settings||settings; train=d.train||{}; diet=d.diet||{}; weight=d.weight||{};
+      save("fw_settings",settings); save("fw_train",train); save("fw_diet",diet); save("fw_weight",weight);
+      renderAll();
+    }catch(e){ alert("导入失败：文件格式错误"); }
+  };
+  rd.readAsText(f);
+  this.value="";
+});
+$("btnSettings").addEventListener("click",function(){
+  $("setWeek1").value=settings.week1;
+  $("setProtein").value=settings.protein;
+  $("setCarbs").value=settings.carbs;
+  $("setFat").value=settings.fat;
+  $("setFiber").value=settings.fiber;
+  $("setKcal").value=settings.kcal;
+  $("setApiKey").value=settings.apiKey||"";
+  $("modalSettings").classList.remove("hide");
+});
+$("btnSettingsCancel").addEventListener("click",function(){ $("modalSettings").classList.add("hide"); });
+$("btnSettingsSave").addEventListener("click",function(){
+  settings.week1=$("setWeek1").value||settings.week1;
+  settings.protein=parseFloat($("setProtein").value)||settings.protein;
+  settings.carbs=parseFloat($("setCarbs").value)||settings.carbs;
+  settings.fat=parseFloat($("setFat").value)||settings.fat;
+  settings.fiber=parseFloat($("setFiber").value)||settings.fiber;
+  settings.kcal=parseFloat($("setKcal").value)||settings.kcal;
+  settings.apiKey=($("setApiKey").value||"").trim();
+  save("fw_settings",settings);
+  $("modalSettings").classList.add("hide");
+  renderAll();
+});
+
+/* ===== 渲染 ===== */
+function renderAll(){
+  renderToday();
+  renderSchedule();
+  renderTraining();
+  renderDiet();
+  renderTrends();
+}
+if("serviceWorker" in navigator){
+  window.addEventListener("load",function(){
+    try{ navigator.serviceWorker.register("sw.js").catch(function(){}); }catch(e){}
+  });
+}
+renderAll();
+</script>
+</body>
+</html>
